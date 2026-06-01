@@ -1,21 +1,21 @@
-# 🪙 FinTrack AI — Modern Smart Expense Tracker
+# FinTrack AI — Modern Smart Expense Tracker
 
 FinTrack AI is a next-generation personal finance manager equipped with AI-driven receipt scanning, dynamic budget calculations, debt planning, transaction exporting, and native web push notifications. Built using a modern TypeScript backend and a polished glassmorphic React frontend.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-- **🤖 Multimodal AI Receipt Scanner**: Drop or upload receipt images. Analyzed via `gemini-2.5-flash` to extract merchant, total cost, items, and categorization with manual edit options and quota-limit fallback.
-- **🖼️ Receipt Gallery**: Interactive dashboard displaying scanned receipts with full text-search, status filters (processed vs. fallback), and a glassmorphic overlay displaying OCR details and deletion capability.
-- **🔔 Native Web Push Notifications**: Native desktop and mobile notifications delivered using the Web Push Protocol, powered by dynamic VAPID keys. Auto-notifies users when budgets are exceeded or billing events occur.
-- **📊 Real-time Analytics & Dashboards**: Premium glassmorphic interface with interactive Recharts charts showing budget utilization, income, expenses, and debts.
-- **📥 Client-side CSV/PDF Exporter**: Clean transaction exporting in spreadsheet-ready CSV format, and printer-optimized layout templates for printing physical reports.
-- **⚡ Voice Expense Input**: Add transactions using interactive voice recognition.
+- **Multimodal AI Receipt Scanner**: Drop or upload receipt images. Analyzed via `gemini-2.5-flash` to extract merchant, total cost, items, and categorization with manual edit options and quota-limit fallback.
+- **Receipt Gallery**: Interactive dashboard displaying scanned receipts with full text-search, status filters (processed vs. fallback), and a glassmorphic overlay displaying OCR details and deletion capability.
+- **Native Web Push Notifications**: Native desktop and mobile notifications delivered using the Web Push Protocol, powered by dynamic VAPID keys. Auto-notifies users when budgets are exceeded or billing events occur.
+- **Real-time Analytics & Dashboards**: Premium glassmorphic interface with interactive Recharts charts showing budget utilization, income, expenses, and debts.
+- **Client-side CSV/PDF Exporter**: Clean transaction exporting in spreadsheet-ready CSV format, and printer-optimized layout templates for printing physical reports.
+- **Voice Expense Input**: Add transactions using interactive voice recognition.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Frontend
 - **Framework**: React 19 (via Vite)
@@ -34,11 +34,12 @@ FinTrack AI is a next-generation personal finance manager equipped with AI-drive
 
 ---
 
-## 📐 Architecture & Data Flow
+## Architecture Sketch
 
-Below is the high-level architecture diagram detailing the interaction between the client, backend server, database, and third-party integrations:
+Below is the high-level architecture sketch detailing the interaction between the client, backend server, database, and third-party integrations:
 
 ```mermaid
+%%{init: {'theme': 'default', 'look': 'handDrawn'}}%%
 graph TD
     subgraph Client [React Frontend - Port 5173]
         UI[Glassmorphic User Interface]
@@ -82,7 +83,7 @@ graph TD
 
 ---
 
-## ⚙️ Local Setup & Configuration
+## Local Setup & Configuration
 
 ### Prerequisites
 - Node.js (v18 or higher)
@@ -139,7 +140,7 @@ npm run dev
 
 ---
 
-## 🚀 Deployment Instructions
+## Deployment Instructions
 
 ### Production Build compilation
 Before deploying, ensure that the project compiles with no warnings or type errors:
@@ -166,7 +167,7 @@ npm run build
 
 ---
 
-## 🔔 How to Use Native Push Notifications
+## How to Use Native Push Notifications
 
 1. Open the application.
 2. Click on the **Notification Bell** icon in the navigation bar.
