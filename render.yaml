@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: fintrack-ai-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: node dist/server.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false # User will provide their MongoDB connection URI
+      - key: JWT_SECRET
+        generateValue: true # Generates a random secure secret automatically
+      - key: GEMINI_API_KEY
+        sync: false # User will provide their Google Gemini API Key
+      - key: VAPID_PUBLIC_KEY
+        sync: false # Optional: dynamic generation in-memory will fallback if left blank
+      - key: VAPID_PRIVATE_KEY
+        sync: false # Optional: dynamic generation in-memory will fallback if left blank
