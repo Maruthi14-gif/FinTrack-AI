@@ -19,6 +19,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# User-uploaded receipt images (user data must not live in the repo)
+backend/public/uploads/
+
 # Editor/System files
 .vscode/
 .idea/

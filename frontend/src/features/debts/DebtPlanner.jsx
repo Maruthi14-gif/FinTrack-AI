@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, ArrowUpDown, HelpCircle, AlertTriangle, TrendingDown, Percent, Info, Calendar } from 'lucide-react';
-import api from '../lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+import api from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function DebtPlanner() {
   const [debts, setDebts] = useState([]);

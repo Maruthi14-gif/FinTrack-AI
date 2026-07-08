@@ -1,10 +1,4 @@
-import dotenv from 'dotenv';
-import { GoogleGenAI } from '@google/genai';
-
-dotenv.config();
-
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+import { ai, GEMINI_MODEL, CATEGORIES, extractJson, normalizeCategory } from '../utils/gemini.js';
 
 export interface ParsedExpense {
   item: string;
@@ -17,7 +11,7 @@ export interface ParsedExpense {
 function fallbackParseExpense(text: string): ParsedExpense[] {
   const today = new Date().toISOString().split('T')[0];
   const textLower = text.toLowerCase();
-  
+
   // Extract amount
   let amount = 0;
   const cleanText = textLower.replace(/,/g, '');
@@ -27,15 +21,14 @@ function fallbackParseExpense(text: string): ParsedExpense[] {
   }
 
   // Infer category
-  const categories = ['Food', 'Travel', 'Shopping', 'Bills', 'Education', 'Entertainment', 'Healthcare', 'Investments', 'Others'];
   let category = 'Others';
-  for (const cat of categories) {
+  for (const cat of CATEGORIES) {
     if (textLower.includes(cat.toLowerCase())) {
       category = cat;
       break;
     }
   }
-  
+
   if (category === 'Others') {
     if (textLower.includes('lunch') || textLower.includes('dinner') || textLower.includes('breakfast') || textLower.includes('eat') || textLower.includes('restaurant') || textLower.includes('pizza') || textLower.includes('burger') || textLower.includes('food') || textLower.includes('groceries')) {
       category = 'Food';
@@ -106,8 +99,8 @@ export async function parseExpense(text: string): Promise<ParsedExpense[]> {
   }
 
   const prompt = `
-Extract expense details from the following natural language text. 
-If there are multiple expenses, return a JSON array of objects. 
+Extract expense details from the following natural language text.
+If there are multiple expenses, return a JSON array of objects.
 If there is one expense, return a JSON array containing one object.
 Each object must have the following keys exactly:
 - "item": a short name of the expense, ALWAYS translated to English if the input text is in Hindi, Telugu, or any other language
@@ -122,41 +115,21 @@ Respond ONLY with valid JSON, do not include markdown formatting or backticks ar
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: GEMINI_MODEL,
       contents: prompt,
     });
 
-    let jsonStr = response.text ? response.text.trim() : '[]';
-    if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.substring(7);
-    }
-    if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.substring(3);
-    }
-    if (jsonStr.endsWith('```')) {
-      jsonStr = jsonStr.substring(0, jsonStr.length - 3);
-    }
-
-    const parsed = JSON.parse(jsonStr.trim());
+    const jsonStr = extractJson(response.text, '[]');
+    const parsed = JSON.parse(jsonStr);
     const result = Array.isArray(parsed) ? parsed : [parsed];
-    
-    const validCategories = ['Food', 'Travel', 'Shopping', 'Bills', 'Education', 'Entertainment', 'Healthcare', 'Investments', 'Others'];
-    return result.map(exp => {
-      let cat = exp.category || 'Others';
-      cat = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
-      if (!validCategories.includes(cat)) {
-        if (cat === 'Transport') cat = 'Travel';
-        else if (cat === 'Health') cat = 'Healthcare';
-        else cat = 'Others';
-      }
-      return {
-        item: exp.item || 'Unnamed Expense',
-        amount: Number(exp.amount) || 0,
-        category: cat,
-        date: exp.date || today,
-        description: exp.description || ''
-      };
-    });
+
+    return result.map(exp => ({
+      item: exp.item || 'Unnamed Expense',
+      amount: Number(exp.amount) || 0,
+      category: normalizeCategory(exp.category),
+      date: exp.date || today,
+      description: exp.description || ''
+    }));
   } catch (error: any) {
     console.error('Error in parseExpense, trying offline parser fallback:', error);
     return fallbackParseExpense(text);
@@ -171,8 +144,8 @@ export async function generateInsights(expenses: any[]): Promise<string> {
   const summaryStr = JSON.stringify(expenses, null, 2);
 
   const prompt = `
-You are an AI financial advisor. Based on the following recent user expenses, provide 1-2 sentences of brief, actionable financial insights. 
-For example, if spending in a category is high, suggest a specific cut. If it's healthy, praise it. 
+You are an AI financial advisor. Based on the following recent user expenses, provide 1-2 sentences of brief, actionable financial insights.
+For example, if spending in a category is high, suggest a specific cut. If it's healthy, praise it.
 Be concise and supportive.
 
 Recent Expenses:
@@ -182,7 +155,7 @@ Provide just the insight text without any markdown or formatting.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: GEMINI_MODEL,
       contents: prompt,
     });
     return response.text ? response.text.trim() : 'No insights generated.';

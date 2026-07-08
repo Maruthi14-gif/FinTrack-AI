@@ -10,8 +10,49 @@ FinTrack AI is a next-generation personal finance manager equipped with AI-drive
 - **Receipt Gallery**: Interactive dashboard displaying scanned receipts with full text-search, status filters (processed vs. fallback), and a glassmorphic overlay displaying OCR details and deletion capability.
 - **Native Web Push Notifications**: Native desktop and mobile notifications delivered using the Web Push Protocol, powered by dynamic VAPID keys. Auto-notifies users when budgets are exceeded or billing events occur.
 - **Real-time Analytics & Dashboards**: Premium glassmorphic interface with interactive Recharts charts showing budget utilization, income, expenses, and debts.
-- **Client-side CSV/PDF Exporter**: Clean transaction exporting in spreadsheet-ready CSV format, and printer-optimized layout templates for printing physical reports.
-- **Voice Expense Input**: Add transactions using interactive voice recognition.
+- **PDF, Excel & CSV Exports**: One-click branded PDF reports (jsPDF + autotable), real `.xlsx` workbooks with a summary sheet (SheetJS), and CSV — all generated client-side from any filtered transaction view. Export libraries are lazy-loaded so they never slow the initial page load.
+- **Spending Anomaly Detection**: Every saved expense is compared against the category's 3-month average; unusual spikes trigger an in-app + push notification, and `GET /api/analytics/anomalies` powers dashboard insights.
+- **Voice Expense Input**: Add transactions using interactive voice recognition in English, Hindi, or Telugu.
+- **Animated 3D Landing Page**: Public marketing page with a mouse-tracking 3D dashboard mockup, floating gradient blobs, tilt-on-hover feature cards, and scroll-reveal sections — built with Framer Motion and CSS 3D transforms (no heavy 3D library).
+
+---
+
+## Project Structure
+
+The codebase follows a layered architecture so every piece of logic has one obvious home:
+
+```
+backend/src/
+├── server.ts            # App entry: express setup + route mounting
+├── config/db.ts         # MongoDB connection
+├── routes/              # THIN routing only — path → controller wiring
+├── controllers/         # Request/response handling per domain (auth, expenses, budgets, ai, ...)
+├── services/            # Business & AI logic, reusable and framework-free
+│   ├── aiService.ts         # Voice/text expense parsing + insights (Gemini)
+│   ├── chatService.ts       # AI financial assistant chat
+│   ├── queryService.ts      # Natural-language → database filter translation
+│   ├── summaryService.ts    # Monthly AI report with 1-hour caching
+│   ├── receiptService.ts    # Receipt image storage + Gemini vision OCR
+│   ├── alertService.ts      # Budget alerts, bill reminders, anomaly detection
+│   └── debtPlanService.ts   # Snowball vs Avalanche payoff simulation
+├── models/              # Mongoose schemas (User, Expense, Budget, ...)
+├── middlewares/         # JWT auth guard
+└── utils/gemini.ts      # Shared Gemini client + JSON/category helpers
+
+frontend/src/
+├── App.jsx              # Router with lazy-loaded (code-split) routes
+├── features/            # One folder per feature, screens grouped by domain
+│   ├── landing/             # Public 3D marketing page
+│   ├── auth/                # Login, Register
+│   ├── dashboard/           # Dashboard, HealthHub
+│   ├── expenses/            # VoiceExpenseInput, Transactions
+│   └── budgets/ income/ debts/ subscriptions/ receipts/ ai/ notifications/
+├── components/ui/       # Shared design-system primitives (button, card, input, ...)
+├── context/             # AuthContext (JWT session state)
+└── lib/                 # api.js (axios), exporters.js (PDF/Excel/CSV), utils.js
+```
+
+**Request flow**: `route → controller → service → model`. Controllers never contain business logic; services never touch `req`/`res`. To add a feature, create its service + controller, wire a thin route, and drop the screen into `frontend/src/features/<name>/`.
 
 ---
 
@@ -23,7 +64,8 @@ FinTrack AI is a next-generation personal finance manager equipped with AI-drive
 - **State & Routing**: React Router DOM, Custom Contexts (AuthContext)
 - **Data Visualizations**: Recharts
 - **Icons**: Lucide React
-- **Animations**: Framer Motion
+- **Animations**: Framer Motion (page transitions, 3D tilt, scroll reveals)
+- **Reports**: jsPDF + jspdf-autotable (PDF), SheetJS `xlsx` (Excel) — dynamically imported on demand
 
 ### Backend
 - **Runtime & Language**: Node.js, TypeScript (`tsx` compilation)

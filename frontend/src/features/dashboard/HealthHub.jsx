@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, Activity, ShieldAlert, Heart, TrendingUp, HelpCircle, CheckCircle, Info, Printer } from 'lucide-react';
-import api from '../lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+import api from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function HealthHub() {
   const [data, setData] = useState(null);

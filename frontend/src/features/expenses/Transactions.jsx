@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Trash2, CalendarDays, ReceiptText, Sparkles, Loader2, Download } from 'lucide-react';
+import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Trash2, CalendarDays, ReceiptText, Sparkles, Loader2, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../lib/api';
-import { Card, CardContent } from './ui/card';
-import { Button } from './ui/button';
-import { useAuth } from '../context/AuthContext';
+import api from '@/lib/api';
+import { exportExpensesCSV, exportExpensesExcel, exportExpensesPDF } from '@/lib/exporters';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Transactions() {
   const { user } = useAuth();
@@ -109,55 +110,50 @@ export default function Transactions() {
     }
   };
 
-  const handleExportCSV = async () => {
+  // Fetch every transaction matching the current filters (not just this page)
+  const fetchAllFiltered = async () => {
+    const res = await api.get('/expenses', {
+      params: {
+        search: search || undefined,
+        category: category || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        minAmount: minAmount !== '' ? Number(minAmount) : undefined,
+        maxAmount: maxAmount !== '' ? Number(maxAmount) : undefined,
+        sortBy,
+        sortOrder,
+        page: 1,
+        limit: 100000
+      }
+    });
+    return res.data.expenses || [];
+  };
+
+  const handleExport = async (format) => {
     try {
-      const res = await api.get('/expenses', {
-        params: {
-          search: search || undefined,
-          category: category || undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          minAmount: minAmount !== '' ? Number(minAmount) : undefined,
-          maxAmount: maxAmount !== '' ? Number(maxAmount) : undefined,
-          sortBy,
-          sortOrder,
-          page: 1,
-          limit: 100000
-        }
-      });
-      
-      const allExpenses = res.data.expenses;
-      if (!allExpenses || allExpenses.length === 0) {
+      const allExpenses = await fetchAllFiltered();
+      if (allExpenses.length === 0) {
         alert('No transactions found to export.');
         return;
       }
 
-      const headers = ['Date', 'Item Name', 'Category', `Amount (${user?.currency || 'INR'})`, 'Description'];
-      const csvRows = [
-        headers.join(','),
-        ...allExpenses.map(exp => {
-          const dateVal = exp.date || '';
-          const itemVal = `"${(exp.item || '').replace(/"/g, '""')}"`;
-          const categoryVal = `"${(exp.category || '').replace(/"/g, '""')}"`;
-          const amountVal = exp.amount || 0;
-          const descVal = `"${(exp.description || '').replace(/"/g, '""')}"`;
-          return [dateVal, itemVal, categoryVal, amountVal, descVal].join(',');
-        })
-      ];
-
-      const csvContent = '\uFEFF' + csvRows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `finvoice-expenses-${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const currency = user?.currency || 'INR';
+      if (format === 'csv') {
+        exportExpensesCSV(allExpenses, currency);
+      } else if (format === 'excel') {
+        await exportExpensesExcel(allExpenses, currency);
+      } else if (format === 'pdf') {
+        const rangeParts = [];
+        if (category) rangeParts.push(category);
+        if (startDate || endDate) rangeParts.push(`${startDate || '...'} to ${endDate || 'today'}`);
+        await exportExpensesPDF(allExpenses, currency, {
+          title: 'Transaction Report',
+          subtitle: rangeParts.join(' | ')
+        });
+      }
     } catch (error) {
-      console.error('Failed to export CSV:', error);
-      alert('Error exporting CSV file.');
+      console.error(`Failed to export ${format}:`, error);
+      alert(`Error exporting ${format.toUpperCase()} file.`);
     }
   };
 
@@ -173,13 +169,31 @@ export default function Transactions() {
           <h1 className="text-3xl font-bold tracking-tight">Transaction History</h1>
           <p className="text-muted-foreground mt-1">Search, filter, and inspect your logs</p>
         </div>
-        <Button
-          onClick={handleExportCSV}
-          disabled={loading || expenses.length === 0}
-          className="flex items-center gap-1.5 rounded-xl cursor-pointer self-start sm:self-auto bg-primary text-primary-foreground font-semibold px-4 h-9 shadow-md text-xs md:text-sm"
-        >
-          <Download size={16} /> Export CSV
-        </Button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            onClick={() => handleExport('csv')}
+            disabled={loading || expenses.length === 0}
+            variant="outline"
+            className="flex items-center gap-1.5 rounded-xl cursor-pointer font-semibold px-3 h-9 shadow-sm text-xs md:text-sm"
+          >
+            <Download size={16} /> CSV
+          </Button>
+          <Button
+            onClick={() => handleExport('excel')}
+            disabled={loading || expenses.length === 0}
+            variant="outline"
+            className="flex items-center gap-1.5 rounded-xl cursor-pointer font-semibold px-3 h-9 shadow-sm text-xs md:text-sm"
+          >
+            <FileSpreadsheet size={16} /> Excel
+          </Button>
+          <Button
+            onClick={() => handleExport('pdf')}
+            disabled={loading || expenses.length === 0}
+            className="flex items-center gap-1.5 rounded-xl cursor-pointer bg-primary text-primary-foreground font-semibold px-3 h-9 shadow-md text-xs md:text-sm"
+          >
+            <FileText size={16} /> PDF
+          </Button>
+        </div>
       </header>
 
       {/* AI Query Search Bar */}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, Check, AlertTriangle, Info, Calendar } from 'lucide-react';
-import api from '../lib/api';
+import api from '@/lib/api';
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);

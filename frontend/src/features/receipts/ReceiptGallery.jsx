@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Search, Trash2, ZoomIn, X, Calendar, Camera, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { useAuth } from '../context/AuthContext';
+import api from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ReceiptGallery() {
   const { user } = useAuth();

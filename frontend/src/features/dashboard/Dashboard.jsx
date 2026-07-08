@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
-import { IndianRupee, TrendingUp, Wallet, ArrowUpRight, CalendarDays, Coins, BarChart3, TrendingDown, Printer } from 'lucide-react';
+import { IndianRupee, TrendingUp, Wallet, ArrowUpRight, CalendarDays, Coins, BarChart3, TrendingDown, FileDown, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import api from '../lib/api';
-import { useAuth } from '../context/AuthContext';
-import NotificationBell from './NotificationBell';
+import api from '@/lib/api';
+import { exportExpensesPDF } from '@/lib/exporters';
+import { useAuth } from '@/context/AuthContext';
+import NotificationBell from '@/features/notifications/NotificationBell';
 
 const COLORS = ['#6366f1', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#3b82f6', '#ef4444', '#10b981', '#6b7280'];
 
@@ -17,6 +19,7 @@ export default function Dashboard() {
   const [dailyTrend, setDailyTrend] = useState([]);
   const [insights, setInsights] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -40,6 +43,37 @@ export default function Dashboard() {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Download a PDF report of the current month's transactions
+  const handleDownloadReport = async () => {
+    setReportLoading(true);
+    try {
+      const now = new Date();
+      const monthStart = `${now.toISOString().slice(0, 7)}-01`;
+      const todayStr = now.toISOString().slice(0, 10);
+
+      const res = await api.get('/expenses', {
+        params: { startDate: monthStart, endDate: todayStr, page: 1, limit: 100000 }
+      });
+
+      const monthExpenses = res.data.expenses || [];
+      if (monthExpenses.length === 0) {
+        alert('No expenses recorded this month yet.');
+        return;
+      }
+
+      const monthLabel = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+      await exportExpensesPDF(monthExpenses, user?.currency || 'INR', {
+        title: 'Monthly Expense Report',
+        subtitle: monthLabel
+      });
+    } catch (error) {
+      console.error('Failed to generate PDF report:', error);
+      alert('Error generating the PDF report.');
+    } finally {
+      setReportLoading(false);
     }
   };
 
@@ -69,10 +103,12 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={() => window.print()}
+            onClick={handleDownloadReport}
+            disabled={reportLoading}
             className="flex items-center gap-1.5 rounded-xl cursor-pointer bg-card hover:bg-muted border border-border/80 h-9 text-xs md:text-sm px-3"
           >
-            <Printer size={16} /> <span className="hidden sm:inline">Print Report</span>
+            {reportLoading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+            <span className="hidden sm:inline">{reportLoading ? 'Generating…' : 'PDF Report'}</span>
           </Button>
           <NotificationBell />
         </div>

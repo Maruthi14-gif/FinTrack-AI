@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bot, Send, Sparkles, AlertCircle, TrendingUp, Info, HelpCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { useAuth } from '../context/AuthContext';
+import api from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AICoach() {
   const { user } = useAuth();

@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Send, Loader2, CheckCircle2, Languages, PlusCircle, Sparkles, AlertCircle, UploadCloud, X, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Button } from './ui/button';
-import api from '../lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import api from '@/lib/api';
 
 export default function VoiceExpenseInput() {
   const [activeTab, setActiveTab] = useState('voice'); // 'voice', 'receipt', or 'manual'

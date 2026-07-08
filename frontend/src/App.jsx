@@ -1,19 +1,31 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { PieChart, Mic, LayoutDashboard, Settings, LogOut, ReceiptText, Bot, Wallet, TrendingDown, HeartPulse, Calendar, Camera } from 'lucide-react';
+import { PieChart, Mic, LayoutDashboard, LogOut, ReceiptText, Bot, Wallet, TrendingDown, HeartPulse, Calendar, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Dashboard from './components/Dashboard';
-import VoiceExpenseInput from './components/VoiceExpenseInput';
-import Budgets from './components/Budgets';
-import Transactions from './components/Transactions';
-import AICoach from './components/AICoach';
-import IncomeTracker from './components/IncomeTracker';
-import DebtPlanner from './components/DebtPlanner';
-import HealthHub from './components/HealthHub';
-import SubscriptionTracker from './components/SubscriptionTracker';
-import ReceiptGallery from './components/ReceiptGallery';
-import Login from './components/Login';
-import Register from './components/Register';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+
+// Route-based code-splitting: each page loads only when visited
+const Dashboard = lazy(() => import('@/features/dashboard/Dashboard'));
+const VoiceExpenseInput = lazy(() => import('@/features/expenses/VoiceExpenseInput'));
+const Budgets = lazy(() => import('@/features/budgets/Budgets'));
+const Transactions = lazy(() => import('@/features/expenses/Transactions'));
+const AICoach = lazy(() => import('@/features/ai/AICoach'));
+const IncomeTracker = lazy(() => import('@/features/income/IncomeTracker'));
+const DebtPlanner = lazy(() => import('@/features/debts/DebtPlanner'));
+const HealthHub = lazy(() => import('@/features/dashboard/HealthHub'));
+const SubscriptionTracker = lazy(() => import('@/features/subscriptions/SubscriptionTracker'));
+const ReceiptGallery = lazy(() => import('@/features/receipts/ReceiptGallery'));
+const Landing = lazy(() => import('@/features/landing/Landing'));
+const Login = lazy(() => import('@/features/auth/Login'));
+const Register = lazy(() => import('@/features/auth/Register'));
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[50vh] w-full items-center justify-center">
+      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  );
+}
 
 function Navigation() {
   const location = useLocation();
@@ -115,8 +127,9 @@ function AuthenticatedApp() {
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30 pb-20 md:pb-0 flex flex-col md:flex-row w-full">
       <Navigation />
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 pt-6 md:pt-10 h-full overflow-y-auto">
-        <AnimatePresence mode="wait">
-          <Routes>
+        <Suspense fallback={<PageLoader />}>
+          <AnimatePresence mode="wait">
+            <Routes>
             <Route path="/" element={
               <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={{ duration: 0.3 }} className="w-full">
                 <Dashboard />
@@ -168,8 +181,9 @@ function AuthenticatedApp() {
               </motion.div>
             } />
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AnimatePresence>
+            </Routes>
+          </AnimatePresence>
+        </Suspense>
       </main>
     </div>
   );
@@ -177,13 +191,28 @@ function AuthenticatedApp() {
 
 function UnauthenticatedApp() {
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans flex items-center justify-center p-4 w-full">
+    <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Landing />} />
+        <Route
+          path="/login"
+          element={
+            <div className="min-h-screen bg-background text-foreground font-sans flex items-center justify-center p-4 w-full">
+              <Login />
+            </div>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <div className="min-h-screen bg-background text-foreground font-sans flex items-center justify-center p-4 w-full">
+              <Register />
+            </div>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </div>
+    </Suspense>
   );
 }
 
