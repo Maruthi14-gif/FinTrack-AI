@@ -343,3 +343,22 @@ npm run build
    - Go to **Budgets** and create a category budget (e.g., *Food*: ₹50).
    - Add a transaction that exceeds this budget limit.
    - You will receive a system-level slide-out browser notification natively on your device, even if the application tab is running in the background.
+
+---
+
+## Troubleshooting
+
+### "Registration failed. Please try again." (or login not working)
+
+This message appears whenever the frontend cannot reach the backend or the backend cannot reach the database. It is almost always a configuration issue, not an app bug. Check these in order:
+
+1. **Is the backend running?** The app needs *two* servers — `npm run dev` in `backend/` **and** in `frontend/`. If only the frontend is up, every auth request is refused. Confirm the backend log shows `Server is running on port: 5000`.
+
+2. **Is the database connected?** The backend log should say `Connected to MongoDB`. If instead you see:
+   - `querySrv ENOTFOUND ...` → the cluster address in `MONGO_URI` doesn't exist. A MongoDB Atlas free (M0) cluster can be deleted after long inactivity — create a new one and copy its fresh connection string (**Connect → Drivers**) into `backend/.env`.
+   - `Could not connect to any servers ... IP that isn't whitelisted` (or a `tlsv1 alert internal error`) → your machine's IP isn't allowed. In Atlas go to **Security → Network Access → Add IP Address → Allow Access From Anywhere** (`0.0.0.0/0`), then wait until it shows **Active**.
+   - `bad auth : authentication failed` → the username/password in `MONGO_URI` is wrong. Reset the database user's password under **Security → Database Access** and prefer an alphanumeric password (special characters like `@` must be URL-encoded in the URI, e.g. `@` → `%40`).
+
+3. **Is `JWT_SECRET` set?** Registration signs a token, so `backend/.env` must define `JWT_SECRET`. Any long random string works locally.
+
+4. **Deployed site failing but local works?** Your hosting platform (Render, etc.) has its own environment variables. Update `MONGO_URI` and `JWT_SECRET` there to match your working local values — the `0.0.0.0/0` allowlist above also lets the host connect.
