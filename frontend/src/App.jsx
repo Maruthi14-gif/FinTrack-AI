@@ -33,54 +33,63 @@ function Navigation() {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full bg-background/80 backdrop-blur-md border-t border-border p-4 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen z-50 flex md:flex-col justify-between">
-      <div className="flex md:flex-col justify-around md:justify-start md:gap-4 w-full h-full max-w-lg mx-auto md:max-w-none">
-        
+    <nav className="fixed bottom-0 left-0 w-full bg-[#0b0b17]/90 backdrop-blur-xl border-t border-white/10 p-3 md:relative md:border-t-0 md:border-r md:border-white/10 md:w-64 md:h-screen z-50 flex md:flex-col justify-between md:bg-gradient-to-b md:from-[#13132a] md:via-[#0e0e1f] md:to-[#0b0b17]">
+      {/* Ambient glow behind the sidebar (desktop only) */}
+      <div className="pointer-events-none absolute inset-0 hidden md:block overflow-hidden">
+        <div className="absolute -top-16 -left-10 h-48 w-48 rounded-full bg-indigo-600/20 blur-3xl" />
+        <div className="absolute bottom-24 -right-10 h-48 w-48 rounded-full bg-fuchsia-600/10 blur-3xl" />
+      </div>
+
+      <div className="relative flex md:flex-col justify-around md:justify-start md:gap-1.5 w-full h-full max-w-lg mx-auto md:max-w-none md:overflow-y-auto">
+
         {/* Logo for Desktop */}
-        <div className="hidden md:flex items-center gap-2 mb-10 px-4">
-          <div className="bg-primary p-2 rounded-lg">
-            <Mic size={20} className="text-primary-foreground" />
+        <div className="hidden md:flex items-center gap-2.5 mb-8 px-2 pt-1">
+          <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2 rounded-xl shadow-lg shadow-indigo-500/30">
+            <Mic size={20} className="text-white" />
           </div>
-          <span className="font-bold text-xl tracking-tight">FinVoice</span>
+          <span className="font-extrabold text-xl tracking-tight text-white">FinVoice</span>
         </div>
 
-        <NavItem to="/" icon={<LayoutDashboard size={24} />} label="Dashboard" active={isActive('/')} />
-        <NavItem to="/add" icon={<Mic size={24} />} label="Voice Input" active={isActive('/add')} primary />
-        <NavItem to="/budgets" icon={<PieChart size={24} />} label="Budgets" active={isActive('/budgets')} />
-        <NavItem to="/transactions" icon={<ReceiptText size={24} />} label="Transactions" active={isActive('/transactions')} />
-        <NavItem to="/incomes" icon={<Wallet size={24} />} label="Income" active={isActive('/incomes')} desktopOnly />
-        <NavItem to="/debts" icon={<TrendingDown size={24} />} label="Debt Planner" active={isActive('/debts')} desktopOnly />
-        <NavItem to="/subscriptions" icon={<Calendar size={24} />} label="Subscriptions" active={isActive('/subscriptions')} desktopOnly />
-        <NavItem to="/receipts" icon={<Camera size={24} />} label="Receipts Gallery" active={isActive('/receipts')} desktopOnly />
-        <NavItem to="/health" icon={<HeartPulse size={24} />} label="Health Hub" active={isActive('/health')} desktopOnly />
-        <NavItem to="/coach" icon={<Bot size={24} />} label="AI Coach" active={isActive('/coach')} />
-        
+        {/* Section label (desktop) */}
+        <p className="hidden md:block px-3 mb-1 text-[10px] font-bold uppercase tracking-widest text-white/30">Menu</p>
+
+        <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" active={isActive('/')} />
+        <NavItem to="/add" icon={<Mic size={20} />} label="Voice Input" active={isActive('/add')} primary />
+        <NavItem to="/budgets" icon={<PieChart size={20} />} label="Budgets" active={isActive('/budgets')} />
+        <NavItem to="/transactions" icon={<ReceiptText size={20} />} label="Transactions" active={isActive('/transactions')} />
+        <NavItem to="/incomes" icon={<Wallet size={20} />} label="Income" active={isActive('/incomes')} desktopOnly />
+        <NavItem to="/debts" icon={<TrendingDown size={20} />} label="Debt Planner" active={isActive('/debts')} desktopOnly />
+        <NavItem to="/subscriptions" icon={<Calendar size={20} />} label="Subscriptions" active={isActive('/subscriptions')} desktopOnly />
+        <NavItem to="/receipts" icon={<Camera size={20} />} label="Receipts Gallery" active={isActive('/receipts')} desktopOnly />
+        <NavItem to="/health" icon={<HeartPulse size={20} />} label="Health Hub" active={isActive('/health')} desktopOnly />
+        <NavItem to="/coach" icon={<Bot size={20} />} label="AI Coach" active={isActive('/coach')} />
+
         {/* User profile & Logout at the bottom for desktop */}
-        <div className="hidden md:flex flex-col gap-2 mt-auto border-t border-border/60 pt-4 px-2">
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+        <div className="hidden md:flex flex-col gap-1 mt-auto pt-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 backdrop-blur-sm">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-500/25">
               {user?.username?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{user?.username}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+              <p className="text-sm font-semibold truncate text-white">{user?.username}</p>
+              <p className="text-xs text-white/45 truncate">{user?.email}</p>
             </div>
           </div>
-          <button 
-            onClick={logout} 
-            className="flex items-center gap-3 px-3 py-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors w-full text-left cursor-pointer"
+          <button
+            onClick={logout}
+            className="flex items-center gap-3 px-3 py-2.5 mt-1 rounded-xl text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors w-full text-left cursor-pointer"
           >
-            <LogOut size={20} />
+            <LogOut size={18} />
             <span className="text-sm font-medium">Log Out</span>
           </button>
         </div>
 
         {/* Logout at the end of nav items on mobile */}
-        <button 
-          onClick={logout} 
-          className="flex flex-col items-center justify-center text-muted-foreground hover:text-destructive md:hidden transition-colors cursor-pointer"
+        <button
+          onClick={logout}
+          className="flex flex-col items-center justify-center text-white/50 hover:text-red-400 md:hidden transition-colors cursor-pointer"
         >
-          <LogOut size={24} />
+          <LogOut size={20} />
           <span className="text-[10px] mt-1 font-medium">Log Out</span>
         </button>
       </div>
@@ -91,27 +100,27 @@ function Navigation() {
 function NavItem({ to, icon, label, active, primary, desktopOnly }) {
   if (primary) {
     return (
-      <Link to={to} className={`relative flex flex-col items-center justify-center md:flex-row md:justify-start md:px-4 md:py-3 ${desktopOnly ? 'hidden md:flex' : 'flex'}`}>
-        <motion.div 
-          whileHover={{ scale: 1.1 }}
+      <Link to={to} className={`relative flex flex-col items-center justify-center md:flex-row md:justify-start ${desktopOnly ? 'hidden md:flex' : 'flex'}`}>
+        <motion.div
+          whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.95 }}
-          className={`p-4 rounded-full -mt-10 shadow-lg md:mt-0 md:p-3 md:rounded-xl z-10 transition-colors ${active ? 'bg-primary text-primary-foreground shadow-primary/30' : 'bg-primary/90 text-primary-foreground'}`}
+          className={`btn-shine p-4 rounded-full -mt-10 shadow-xl md:mt-0 md:w-full md:p-0 md:rounded-xl md:py-2.5 md:px-3 md:flex md:items-center md:gap-3.5 z-10 bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-indigo-500/40 ${active ? 'ring-2 ring-white/40' : ''}`}
         >
           {icon}
+          <span className="hidden md:block font-semibold text-sm">{label}</span>
         </motion.div>
         <span className="text-xs mt-1 font-medium md:hidden text-primary">{label}</span>
-        <span className="hidden md:block ml-3 font-medium text-primary">{label}</span>
       </Link>
     );
   }
 
   return (
-    <Link to={to} className={`relative flex-col items-center md:flex-row md:justify-start md:px-4 md:py-3 md:rounded-xl transition-colors ${active ? 'text-primary md:bg-muted' : 'text-muted-foreground hover:text-foreground md:hover:bg-muted/50'} ${desktopOnly ? 'hidden md:flex' : 'flex'}`}>
+    <Link to={to} className={`relative flex-col items-center md:flex-row md:justify-start md:gap-3.5 md:px-3 md:py-2.5 md:rounded-xl transition-colors ${active ? 'text-indigo-400 md:text-white' : 'text-white/55 hover:text-white md:hover:bg-white/5'} ${desktopOnly ? 'hidden md:flex' : 'flex'}`}>
       {active && (
-        <motion.div layoutId="nav-pill" className="absolute inset-0 bg-muted rounded-xl hidden md:block" />
+        <motion.div layoutId="nav-pill" className="absolute inset-0 rounded-xl hidden md:block bg-gradient-to-r from-indigo-500/90 to-violet-600/90 shadow-lg shadow-indigo-500/25" transition={{ type: 'spring', stiffness: 350, damping: 30 }} />
       )}
-      <div className="z-10">{icon}</div>
-      <span className="text-xs mt-1 font-medium md:ml-3 md:mt-0 z-10">{label}</span>
+      <div className="z-10 shrink-0">{icon}</div>
+      <span className="text-[10px] md:text-sm mt-1 font-medium md:mt-0 z-10">{label}</span>
     </Link>
   );
 }

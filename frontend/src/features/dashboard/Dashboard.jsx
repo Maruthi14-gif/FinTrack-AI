@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
-import { IndianRupee, TrendingUp, Wallet, ArrowUpRight, CalendarDays, Coins, BarChart3, TrendingDown, FileDown, Loader2 } from 'lucide-react';
+import { IndianRupee, TrendingUp, Wallet, ArrowUpRight, CalendarDays, Coins, BarChart3, TrendingDown, FileDown, Loader2, PieChart as PieChartIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import { exportExpensesPDF } from '@/lib/exporters';
@@ -95,17 +95,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <header className="mb-4 flex items-center justify-between">
+      <header className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Financial Overview</h1>
-          <p className="text-muted-foreground mt-1">Real-time spend logs and custom AI observations</p>
+          <p className="text-sm font-semibold text-primary mb-1">Welcome back, {user?.username || 'there'} 👋</p>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">Financial Overview</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Real-time spend logs and custom AI observations</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
-            variant="outline"
             onClick={handleDownloadReport}
             disabled={reportLoading}
-            className="flex items-center gap-1.5 rounded-xl cursor-pointer bg-card hover:bg-muted border border-border/80 h-9 text-xs md:text-sm px-3"
+            className="flex items-center gap-1.5 rounded-xl cursor-pointer bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:opacity-90 border-0 h-9 text-xs md:text-sm px-4 shadow-lg shadow-indigo-500/25"
           >
             {reportLoading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
             <span className="hidden sm:inline">{reportLoading ? 'Generating…' : 'PDF Report'}</span>
@@ -116,49 +116,60 @@ export default function Dashboard() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
-        <SummaryCard 
-          title="Today's Spend" 
-          amount={summary.daily} 
-          icon={<IndianRupee className="h-4 w-4 text-muted-foreground" />} 
+        <SummaryCard
+          title="Today's Spend"
+          amount={summary.daily}
+          icon={IndianRupee}
+          gradient="from-indigo-500 to-blue-500"
+          formatCurrency={formatCurrency}
+          delay={0.05}
+        />
+        <SummaryCard
+          title="This Week"
+          amount={summary.weekly}
+          icon={TrendingUp}
+          gradient="from-violet-500 to-purple-500"
           formatCurrency={formatCurrency}
           delay={0.1}
         />
-        <SummaryCard 
-          title="This Week" 
-          amount={summary.weekly} 
-          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />} 
+        <SummaryCard
+          title="This Month"
+          amount={summary.monthly}
+          icon={Wallet}
+          gradient="from-fuchsia-500 to-pink-500"
           formatCurrency={formatCurrency}
           delay={0.15}
         />
-        <SummaryCard 
-          title="This Month" 
-          amount={summary.monthly} 
-          icon={<Wallet className="h-4 w-4 text-muted-foreground" />} 
+        <SummaryCard
+          title="This Year"
+          amount={summary.yearly}
+          icon={CalendarDays}
+          gradient="from-teal-500 to-emerald-500"
           formatCurrency={formatCurrency}
           delay={0.2}
         />
-        <SummaryCard 
-          title="This Year" 
-          amount={summary.yearly} 
-          icon={<CalendarDays className="h-4 w-4 text-muted-foreground" />} 
-          formatCurrency={formatCurrency}
-          delay={0.25}
-        />
-        <SummaryCard 
-          title="Total Expenses" 
-          amount={summary.total} 
-          icon={<Coins className="h-4 w-4 text-muted-foreground" />} 
+        <SummaryCard
+          title="Total Expenses"
+          amount={summary.total}
+          icon={Coins}
+          gradient="from-amber-500 to-orange-500"
           formatCurrency={formatCurrency}
           className="col-span-2 md:col-span-1"
-          delay={0.3}
+          highlight
+          delay={0.25}
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 mt-4">
         {/* Category Breakdown Pie Chart */}
-        <Card className="col-span-1 lg:col-span-4 shadow-md bg-card/40 backdrop-blur-sm border-primary/10">
+        <Card className="col-span-1 lg:col-span-4 rounded-2xl shadow-md bg-card/50 backdrop-blur-sm border-border/60">
           <CardHeader>
-            <CardTitle className="text-lg">Category Distribution</CardTitle>
+            <CardTitle className="flex items-center gap-2.5 text-lg">
+              <span className="inline-flex rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 p-1.5 shadow-md shadow-indigo-500/25">
+                <PieChartIcon size={16} className="text-white" />
+              </span>
+              Category Distribution
+            </CardTitle>
             <CardDescription>Where your funds went this month</CardDescription>
           </CardHeader>
           <CardContent>
@@ -195,10 +206,10 @@ export default function Dashboard() {
         </Card>
 
         {/* AI Insights Card */}
-        <Card className="col-span-1 lg:col-span-3 shadow-md border-primary/15 bg-primary/5">
+        <Card className="col-span-1 lg:col-span-3 rounded-2xl shadow-md border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.08] to-violet-500/[0.03]">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span className="bg-primary p-1.5 rounded-md text-primary-foreground">
+            <CardTitle className="flex items-center gap-2.5 text-lg">
+              <span className="inline-flex bg-gradient-to-br from-indigo-500 to-violet-600 p-1.5 rounded-lg text-white shadow-md shadow-indigo-500/25">
                 <ArrowUpRight size={16} />
               </span>
               Financial Observations
@@ -224,10 +235,13 @@ export default function Dashboard() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 mt-2">
         {/* Monthly Spending Trend Bar Chart */}
-        <Card className="col-span-1 lg:col-span-4 shadow-md bg-card/40 backdrop-blur-sm border-primary/10">
+        <Card className="col-span-1 lg:col-span-4 rounded-2xl shadow-md bg-card/50 backdrop-blur-sm border-border/60">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <BarChart3 className="text-primary h-5 w-5" /> Monthly Cash Trend
+            <CardTitle className="flex items-center gap-2.5 text-lg">
+              <span className="inline-flex rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 p-1.5 shadow-md shadow-violet-500/25">
+                <BarChart3 className="text-white h-4 w-4" />
+              </span>
+              Monthly Cash Trend
             </CardTitle>
             <CardDescription>Monthly spending logs for the last 6 months</CardDescription>
           </CardHeader>
@@ -256,10 +270,13 @@ export default function Dashboard() {
         </Card>
 
         {/* Daily Spending Trend Line Chart */}
-        <Card className="col-span-1 lg:col-span-3 shadow-md bg-card/40 backdrop-blur-sm border-primary/10">
+        <Card className="col-span-1 lg:col-span-3 rounded-2xl shadow-md bg-card/50 backdrop-blur-sm border-border/60">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingDown className="text-primary h-5 w-5" /> 30-Day Spending Trend
+            <CardTitle className="flex items-center gap-2.5 text-lg">
+              <span className="inline-flex rounded-lg bg-gradient-to-br from-fuchsia-500 to-pink-600 p-1.5 shadow-md shadow-fuchsia-500/25">
+                <TrendingDown className="text-white h-4 w-4" />
+              </span>
+              30-Day Spending Trend
             </CardTitle>
             <CardDescription>Daily spending fluctuations over last 30 days</CardDescription>
           </CardHeader>
@@ -287,20 +304,25 @@ export default function Dashboard() {
   );
 }
 
-function SummaryCard({ title, amount, icon, formatCurrency, className = "", delay }) {
+function SummaryCard({ title, amount, icon: Icon, gradient, formatCurrency, className = "", delay, highlight }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
+      whileHover={{ y: -4 }}
       className={className}
     >
-      <Card className="shadow-sm bg-card/50 backdrop-blur-sm hover:shadow-md transition-shadow border-primary/5">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-4">
+      <Card className={`group relative overflow-hidden rounded-2xl border shadow-sm transition-all hover:shadow-xl hover:shadow-indigo-500/10 ${highlight ? 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/[0.07] to-transparent' : 'border-border/60 bg-card/60 backdrop-blur-sm'}`}>
+        {/* accent glow that appears on hover */}
+        <div className={`pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br ${gradient} opacity-10 blur-2xl transition-opacity group-hover:opacity-25`} />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
           <CardTitle className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {title}
           </CardTitle>
-          {icon}
+          <div className={`inline-flex rounded-lg bg-gradient-to-br ${gradient} p-1.5 shadow-md transition-transform group-hover:scale-110`}>
+            <Icon className="h-3.5 w-3.5 text-white" />
+          </div>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
           <div className="text-lg md:text-2xl font-bold tracking-tight text-foreground">{formatCurrency(amount)}</div>
