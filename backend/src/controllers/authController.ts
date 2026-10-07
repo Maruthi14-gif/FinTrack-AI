@@ -40,6 +40,9 @@ export const register = async (req: Request, res: Response): Promise<any> => {
       }
     });
   } catch (err: any) {
+    if (err?.code === 11000) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
     res.status(500).json({ error: err.message });
   }
 };

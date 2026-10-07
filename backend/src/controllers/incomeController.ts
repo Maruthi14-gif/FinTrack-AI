@@ -1,22 +1,21 @@
 import { Request, Response } from 'express';
 import Income from '../models/Income.js';
+import { asString, escapeRegex, parsePagination, parseSort } from '../utils/query.js';
 
 // GET /api/incomes - search, filtering, and pagination
 export const getIncomes = async (req: Request, res: Response): Promise<any> => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { search, category, startDate, endDate, sortBy, sortOrder, page, limit } = req.query;
+    const search = asString(req.query.search);
+    const category = asString(req.query.category);
+    const startDate = asString(req.query.startDate);
+    const endDate = asString(req.query.endDate);
 
     const query: any = { userId: req.user.id };
 
-    if (search) {
-      query.source = { $regex: search, $options: 'i' };
-    }
-
-    if (category) {
-      query.category = category;
-    }
+    if (search) query.source = { $regex: escapeRegex(search), $options: 'i' };
+    if (category) query.category = category;
 
     if (startDate || endDate) {
       query.date = {};
@@ -24,18 +23,8 @@ export const getIncomes = async (req: Request, res: Response): Promise<any> => {
       if (endDate) query.date.$lte = endDate;
     }
 
-    const pageNum = parseInt(page as string) || 1;
-    const limitNum = parseInt(limit as string) || 10;
-    const skipNum = (pageNum - 1) * limitNum;
-
-    const sortField = (sortBy as string) || 'date';
-    const sortDir = (sortOrder as string) === 'asc' ? 1 : -1;
-    const sortObj: any = {};
-    sortObj[sortField] = sortDir;
-
-    if (sortField !== '_id') {
-      sortObj._id = -1;
-    }
+    const { page: pageNum, limit: limitNum, skip: skipNum } = parsePagination(req.query);
+    const sortObj = parseSort(req.query, ['date', 'amount', 'source', 'category', 'createdAt']);
 
     const totalCount = await Income.countDocuments(query);
     const incomes = await Income.find(query)

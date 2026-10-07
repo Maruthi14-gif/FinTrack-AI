@@ -3,9 +3,11 @@
 import path from 'path';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import mongoose from 'mongoose';
 import env from './config/env.js';
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
+import { apiLimiter } from './middlewares/rateLimiters.js';
 
 import authRoutes from './routes/auth.js';
 import expensesRoutes from './routes/expenses.js';
@@ -23,6 +25,10 @@ const app = express();
 // Render (and most hosts) put the app behind a proxy; this makes req.ip correct.
 app.set('trust proxy', 1);
 
+// Security headers. Receipt images under /uploads must stay loadable from the
+// frontend's domain, hence the cross-origin resource policy.
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
 // Only the frontends listed in CLIENT_URL may call the API from a browser.
 // Requests with no Origin header (health checks, curl, mobile apps) are allowed.
 app.use(
@@ -37,8 +43,11 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use('/api', apiLimiter);
+
+// Receipt scans carry a base64 image, so only that route gets a large body limit.
+app.use('/api/ai/parse-receipt', express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '100kb' }));
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 app.get('/', (req, res) => {

@@ -1,6 +1,7 @@
 import Budget from '../models/Budget.js';
 import Expense from '../models/Expense.js';
 import Notification from '../models/Notification.js';
+import { escapeRegex } from '../utils/query.js';
 
 // All notification triggers live here. Saving a Notification document also
 // dispatches a web push via the post-save hook on the Notification model.
@@ -36,7 +37,7 @@ export async function checkBudgetLimit(userId: string, category: string): Promis
       const existingAlert = await Notification.findOne({
         userId,
         type: 'budget_alert',
-        title: { $regex: new RegExp(category, 'i') },
+        title: { $regex: new RegExp(escapeRegex(category), 'i') },
         createdAt: { $gte: startOfToday }
       });
 
@@ -177,8 +178,8 @@ export async function checkUpcomingBills(userId: string, subscriptions: any[]): 
       const existingAlert = await Notification.findOne({
         userId,
         type: 'debt_due',
-        title: { $regex: new RegExp(sub.name, 'i') },
-        message: { $regex: new RegExp(sub.nextDueDate, 'i') }
+        title: { $regex: new RegExp(escapeRegex(sub.name), 'i') },
+        message: { $regex: new RegExp(escapeRegex(sub.nextDueDate), 'i') }
       });
 
       if (!existingAlert) {

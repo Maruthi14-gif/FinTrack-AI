@@ -24,6 +24,11 @@ export default function Register() {
       return;
     }
 
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
     setLoading(true);
     const result = await register(username, email, password, currency);
     setLoading(false);

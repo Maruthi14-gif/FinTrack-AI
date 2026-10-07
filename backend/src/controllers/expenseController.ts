@@ -2,23 +2,24 @@ import { Request, Response } from 'express';
 import Expense from '../models/Expense.js';
 import { parseExpense } from '../services/aiService.js';
 import { checkBudgetLimit, checkSpendingAnomaly } from '../services/alertService.js';
+import { asString, asNumber, escapeRegex, parsePagination, parseSort } from '../utils/query.js';
 
 // GET /api/expenses - search, filtering, sorting, and pagination
 export const getExpenses = async (req: Request, res: Response): Promise<any> => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { search, category, startDate, endDate, minAmount, maxAmount, sortBy, sortOrder, page, limit } = req.query;
+    const search = asString(req.query.search);
+    const category = asString(req.query.category);
+    const startDate = asString(req.query.startDate);
+    const endDate = asString(req.query.endDate);
+    const minAmount = asNumber(req.query.minAmount);
+    const maxAmount = asNumber(req.query.maxAmount);
 
     const query: any = { userId: req.user.id };
 
-    if (search) {
-      query.item = { $regex: search, $options: 'i' };
-    }
-
-    if (category) {
-      query.category = category;
-    }
+    if (search) query.item = { $regex: escapeRegex(search), $options: 'i' };
+    if (category) query.category = category;
 
     if (startDate || endDate) {
       query.date = {};
@@ -28,23 +29,12 @@ export const getExpenses = async (req: Request, res: Response): Promise<any> => 
 
     if (minAmount !== undefined || maxAmount !== undefined) {
       query.amount = {};
-      if (minAmount !== undefined) query.amount.$gte = Number(minAmount);
-      if (maxAmount !== undefined) query.amount.$lte = Number(maxAmount);
+      if (minAmount !== undefined) query.amount.$gte = minAmount;
+      if (maxAmount !== undefined) query.amount.$lte = maxAmount;
     }
 
-    const pageNum = parseInt(page as string) || 1;
-    const limitNum = parseInt(limit as string) || 10;
-    const skipNum = (pageNum - 1) * limitNum;
-
-    const sortField = (sortBy as string) || 'date';
-    const sortDir = (sortOrder as string) === 'asc' ? 1 : -1;
-    const sortObj: any = {};
-    sortObj[sortField] = sortDir;
-
-    // Fallback tie-breaker sort
-    if (sortField !== '_id') {
-      sortObj._id = -1;
-    }
+    const { page: pageNum, limit: limitNum, skip: skipNum } = parsePagination(req.query);
+    const sortObj = parseSort(req.query, ['date', 'amount', 'item', 'category', 'createdAt']);
 
     const totalCount = await Expense.countDocuments(query);
     const expenses = await Expense.find(query)
@@ -107,7 +97,11 @@ export const parseAndCreateExpenses = async (req: Request, res: Response): Promi
       return res.status(400).json({ error: 'No text provided' });
     }
 
-    const parsedExpenses = await parseExpense(text);
+    // Ignore anything the parser could not attach a real amount to.
+    const parsedExpenses = (await parseExpense(text)).filter(exp => exp.amount > 0);
+    if (parsedExpenses.length === 0) {
+      return res.status(422).json({ error: 'Could not find an amount in that. Try something like "spent 250 on groceries".' });
+    }
     const savedExpenses = [];
 
     for (const exp of parsedExpenses) {
