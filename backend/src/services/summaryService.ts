@@ -1,6 +1,7 @@
 import Expense from '../models/Expense.js';
 import Budget from '../models/Budget.js';
 import AIReport from '../models/AIReport.js';
+import { monthRange } from './expenseStatsService.js';
 import { ai, GEMINI_MODEL, extractJson, isQuotaOrKeyError } from '../utils/gemini.js';
 
 // Build the monthly AI review report (total spending, top categories,
@@ -27,7 +28,7 @@ export async function getMonthlySummary(userId: string): Promise<any> {
   }
 
   // Fetch this month's expenses and budgets
-  const expenses = await Expense.find({ userId, date: { $regex: `^${currentMonth}` } });
+  const expenses = await Expense.find({ userId, date: monthRange(currentMonth) }).limit(1000).lean();
   const budgets = await Budget.find({ userId });
 
   // Spent by category

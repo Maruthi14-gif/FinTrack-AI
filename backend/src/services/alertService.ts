@@ -1,7 +1,7 @@
 import Budget from '../models/Budget.js';
-import Expense from '../models/Expense.js';
 import Notification from '../models/Notification.js';
 import { escapeRegex } from '../utils/query.js';
+import { totalSpent, monthlyTotalsByCategory, monthKey, monthsAgoKey, monthRange } from './expenseStatsService.js';
 
 // All notification triggers live here. Saving a Notification document also
 // dispatches a web push via the post-save hook on the Notification model.
@@ -10,23 +10,15 @@ import { escapeRegex } from '../utils/query.js';
 // Deduplicated to at most one alert per category per day.
 export async function checkBudgetLimit(userId: string, category: string): Promise<void> {
   try {
-    const today = new Date();
-    const currentMonth = today.toISOString().slice(0, 7);
-
     // 1. Check if there is a budget for this user and category
     const budget = await Budget.findOne({ userId, category });
     if (!budget) return;
 
-    // 2. Fetch total spent in this category for the current month
-    const categoryExpenses = await Expense.find({
-      userId,
-      category,
-      date: { $regex: `^${currentMonth}` }
-    });
-    const totalSpent = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+    // 2. Total spent in this category for the current month
+    const totalSpentValue = await totalSpent(userId, { category, date: monthRange(monthKey()) });
 
     const budgetLimit = budget.monthly_limit;
-    const ratio = totalSpent / budgetLimit;
+    const ratio = totalSpentValue / budgetLimit;
 
     // We only trigger alerts if ratio >= 0.9
     if (ratio >= 0.9) {
@@ -46,10 +38,10 @@ export async function checkBudgetLimit(userId: string, category: string): Promis
         let message = '';
         if (ratio >= 1.0) {
           title = `Budget Exceeded: ${category}`;
-          message = `Alert! You have spent ₹${totalSpent.toLocaleString()} on ${category}, exceeding your limit of ₹${budgetLimit.toLocaleString()} by ${Math.round((ratio - 1) * 100)}%.`;
+          message = `Alert! You have spent ₹${totalSpentValue.toLocaleString()} on ${category}, exceeding your limit of ₹${budgetLimit.toLocaleString()} by ${Math.round((ratio - 1) * 100)}%.`;
         } else {
           title = `Budget Warning: ${category}`;
-          message = `Warning: You have used ${Math.round(ratio * 100)}% of your monthly ${category} budget limit (Spent ₹${totalSpent.toLocaleString()} of ₹${budgetLimit.toLocaleString()}).`;
+          message = `Warning: You have used ${Math.round(ratio * 100)}% of your monthly ${category} budget limit (Spent ₹${totalSpentValue.toLocaleString()} of ₹${budgetLimit.toLocaleString()}).`;
         }
 
         const newNotification = new Notification({
@@ -75,28 +67,20 @@ export interface SpendingAnomaly {
 
 // Compare this month's spend in a category against the average of the
 // previous three calendar months (ignoring months with no spend in that
-// category). Flags an anomaly when the current month is at least 50% above
+// category). It is an anomaly when the current month is at least 50% above
 // the average and the jump is big enough to matter (>= ₹500).
-async function detectAnomalyForCategory(userId: string, category: string): Promise<SpendingAnomaly | null> {
-  const now = new Date();
-  const currentMonth = now.toISOString().slice(0, 7);
+// Pure function: no database access, so it is easy to unit test.
+export function evaluateAnomaly(
+  category: string,
+  totalsByMonth: Record<string, number>,
+  currentMonth: string,
+  previousMonths: string[]
+): SpendingAnomaly | null {
+  const history = previousMonths.map(month => totalsByMonth[month] || 0).filter(total => total > 0);
+  if (history.length === 0) return null; // nothing to compare against
 
-  const monthTotals: number[] = [];
-  for (let i = 1; i <= 3; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const expenses = await Expense.find({ userId, category, date: { $regex: `^${monthKey}` } });
-    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-    if (total > 0) monthTotals.push(total);
-  }
-
-  // No history to compare against
-  if (monthTotals.length === 0) return null;
-
-  const averageSpend = monthTotals.reduce((sum, t) => sum + t, 0) / monthTotals.length;
-
-  const currentExpenses = await Expense.find({ userId, category, date: { $regex: `^${currentMonth}` } });
-  const currentSpend = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const averageSpend = history.reduce((sum, total) => sum + total, 0) / history.length;
+  const currentSpend = totalsByMonth[currentMonth] || 0;
 
   if (currentSpend >= averageSpend * 1.5 && currentSpend - averageSpend >= 500) {
     return {
@@ -106,15 +90,25 @@ async function detectAnomalyForCategory(userId: string, category: string): Promi
       percentIncrease: Math.round(((currentSpend - averageSpend) / averageSpend) * 100)
     };
   }
-
   return null;
+}
+
+// One database query covers every category (or just the one requested).
+async function detectAnomalies(userId: string, category?: string): Promise<SpendingAnomaly[]> {
+  const currentMonth = monthKey();
+  const previousMonths = [1, 2, 3].map(n => monthsAgoKey(n));
+  const totals = await monthlyTotalsByCategory(userId, previousMonths[2], category);
+
+  return Object.entries(totals)
+    .map(([cat, byMonth]) => evaluateAnomaly(cat, byMonth, currentMonth, previousMonths))
+    .filter((anomaly): anomaly is SpendingAnomaly => anomaly !== null);
 }
 
 // Run anomaly detection for one category (after an expense is saved) and
 // notify the user. Deduplicated to one anomaly alert per category per month.
 export async function checkSpendingAnomaly(userId: string, category: string): Promise<void> {
   try {
-    const anomaly = await detectAnomalyForCategory(userId, category);
+    const [anomaly] = await detectAnomalies(userId, category);
     if (!anomaly) return;
 
     const startOfMonth = new Date();
@@ -145,17 +139,7 @@ export async function checkSpendingAnomaly(userId: string, category: string): Pr
 // Scan every category the user spent on this month and return all anomalies.
 // Used by the analytics dashboard.
 export async function findSpendingAnomalies(userId: string): Promise<SpendingAnomaly[]> {
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const monthExpenses = await Expense.find({ userId, date: { $regex: `^${currentMonth}` } });
-  const categories = [...new Set(monthExpenses.map(e => e.category))];
-
-  const anomalies: SpendingAnomaly[] = [];
-  for (const category of categories) {
-    const anomaly = await detectAnomalyForCategory(userId, category);
-    if (anomaly) anomalies.push(anomaly);
-  }
-
-  return anomalies;
+  return detectAnomalies(userId);
 }
 
 // Remind about active subscriptions that are due within the next 3 days.

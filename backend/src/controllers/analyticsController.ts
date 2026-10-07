@@ -7,6 +7,7 @@ import Debt from '../models/Debt.js';
 import Budget from '../models/Budget.js';
 import { generateInsights } from '../services/aiService.js';
 import { findSpendingAnomalies } from '../services/alertService.js';
+import { spentByCategory, dateKey, monthKey, monthsAgoKey, monthRange } from '../services/expenseStatsService.js';
 
 // GET /api/analytics/distribution - spending by category (Pie Chart)
 export const getDistribution = async (req: Request, res: Response): Promise<any> => {
@@ -94,49 +95,31 @@ export const getSpendingSummary = async (req: Request, res: Response): Promise<a
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const userId = new mongoose.Types.ObjectId(req.user.id);
-    const today = new Date();
-    const currentMonth = today.toISOString().slice(0, 7);
-    const currentYear = today.getFullYear().toString();
-    const todayStr = today.toISOString().slice(0, 10);
+    const today = dateKey();
+    const month = monthRange(monthKey());
+    const year = today.slice(0, 4);
+    const weekAgo = dateKey(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
+    // Add up `amount` only for rows whose date falls inside [from, to].
+    const sumBetween = (from: string, to: string) => ({
+      $sum: { $cond: [{ $and: [{ $gte: ['$date', from] }, { $lte: ['$date', to] }] }, '$amount', 0] }
+    });
 
-    // Monthly
-    const monthlyAgg = await Expense.aggregate([
-      { $match: { userId, date: { $regex: `^${currentMonth}` } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    const monthly = monthlyAgg.length > 0 ? monthlyAgg[0].total : 0;
-
-    // Today
-    const dailyAgg = await Expense.aggregate([
-      { $match: { userId, date: todayStr } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    const daily = dailyAgg.length > 0 ? dailyAgg[0].total : 0;
-
-    // Weekly
-    const weeklyAgg = await Expense.aggregate([
-      { $match: { userId, date: { $gte: sevenDaysAgoStr } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    const weekly = weeklyAgg.length > 0 ? weeklyAgg[0].total : 0;
-
-    // Yearly
-    const yearlyAgg = await Expense.aggregate([
-      { $match: { userId, date: { $regex: `^${currentYear}` } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    const yearly = yearlyAgg.length > 0 ? yearlyAgg[0].total : 0;
-
-    // Total
-    const totalAgg = await Expense.aggregate([
+    // One pass over the user's expenses produces all five totals.
+    const [row] = await Expense.aggregate([
       { $match: { userId } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' },
+          daily: sumBetween(today, today),
+          weekly: sumBetween(weekAgo, '9999-12-31'),
+          monthly: sumBetween(month.$gte, month.$lte),
+          yearly: sumBetween(`${year}-01-01`, `${year}-12-31`)
+        }
+      }
     ]);
-    const total = totalAgg.length > 0 ? totalAgg[0].total : 0;
+    const { daily = 0, weekly = 0, monthly = 0, yearly = 0, total = 0 } = row ?? {};
 
     res.json({ daily, weekly, monthly, yearly, total });
   } catch (err: any) {
@@ -150,16 +133,16 @@ export const getMonthlyTrend = async (req: Request, res: Response): Promise<any>
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const userId = new mongoose.Types.ObjectId(req.user.id);
 
+    // Current month plus the five before it
     const trend = await Expense.aggregate([
-      { $match: { userId } },
+      { $match: { userId, date: { $gte: `${monthsAgoKey(5)}-01` } } },
       {
         $group: {
-          _id: { $substr: ['$date', 0, 7] }, // Group by YYYY-MM
+          _id: { $substrBytes: ['$date', 0, 7] }, // Group by YYYY-MM
           total: { $sum: '$amount' }
         }
       },
       { $sort: { _id: 1 } },
-      { $limit: 6 },
       {
         $project: {
           month: '$_id',
@@ -226,21 +209,17 @@ export const getFinancialHealth = async (req: Request, res: Response): Promise<a
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const userId = new mongoose.Types.ObjectId(req.user.id);
-    const today = new Date();
-    const currentMonth = today.toISOString().slice(0, 7);
+    const thisMonth = monthRange(monthKey());
 
     // 1. Calculate Monthly Income vs Expense (Cash Flow)
     const incomeAgg = await Income.aggregate([
-      { $match: { userId, date: { $regex: `^${currentMonth}` } } },
+      { $match: { userId, date: thisMonth } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     const monthlyIncome = incomeAgg.length > 0 ? incomeAgg[0].total : 0;
 
-    const expenseAgg = await Expense.aggregate([
-      { $match: { userId, date: { $regex: `^${currentMonth}` } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    const monthlyExpense = expenseAgg.length > 0 ? expenseAgg[0].total : 0;
+    const spent = await spentByCategory(req.user.id);
+    const monthlyExpense = Object.values(spent).reduce((sum, value) => sum + value, 0);
 
     const cashFlow = monthlyIncome - monthlyExpense;
 
@@ -283,15 +262,8 @@ export const getFinancialHealth = async (req: Request, res: Response): Promise<a
     let adheredBudgetsCount = 0;
 
     if (activeBudgetsCount > 0) {
-      const expenses = await Expense.find({ userId: req.user.id, date: { $regex: `^${currentMonth}` } });
-      const spentByCategory = expenses.reduce((acc: { [key: string]: number }, exp) => {
-        acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-        return acc;
-      }, {});
-
       budgets.forEach(b => {
-        const spent = spentByCategory[b.category] || 0;
-        if (spent <= b.monthly_limit) {
+        if ((spent[b.category] || 0) <= b.monthly_limit) {
           adheredBudgetsCount++;
         }
       });

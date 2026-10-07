@@ -7,7 +7,7 @@ import { vapidPublicKey } from '../config/webPush.js';
 export const getNotifications = async (req: Request, res: Response): Promise<any> => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const list = await Notification.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    const list = await Notification.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(100);
     res.json(list.map(n => ({ ...n.toObject(), id: n._id })));
   } catch (err: any) {
     res.status(500).json({ error: err.message });

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import Budget from '../models/Budget.js';
-import Expense from '../models/Expense.js';
+import { spentByCategory } from '../services/expenseStatsService.js';
 
 // GET /api/budgets - all budgets for the authenticated user
 export const getBudgets = async (req: Request, res: Response): Promise<any> => {
@@ -45,24 +45,12 @@ export const getBudgetStatus = async (req: Request, res: Response): Promise<any>
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
-
-    const budgets = await Budget.find({ userId: req.user.id });
-    const expenses = await Expense.find({
-      userId: req.user.id,
-      date: { $regex: `^${currentMonth}` }
-    });
-
-    // Calculate spent per category
-    const spentByCategory = expenses.reduce((acc: { [key: string]: number }, exp) => {
-      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-      return acc;
-    }, {});
+    const [budgets, spent] = await Promise.all([Budget.find({ userId: req.user.id }), spentByCategory(req.user.id)]);
 
     const status = budgets.map(b => ({
       category: b.category,
       monthly_limit: b.monthly_limit,
-      spent: spentByCategory[b.category] || 0
+      spent: spent[b.category] || 0
     }));
 
     res.json(status);

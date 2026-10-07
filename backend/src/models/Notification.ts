@@ -3,13 +3,15 @@ import PushSubscription from './PushSubscription.js';
 import { webpush } from '../config/webPush.js';
 
 const notificationSchema = new Schema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, required: true, trim: true },
   message: { type: String, required: true, trim: true },
   type: { type: String, enum: ['budget_alert', 'debt_due', 'recovery_coach', 'system'], required: true },
   isRead: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
+
+notificationSchema.index({ userId: 1, createdAt: -1 });
 
 notificationSchema.post('save', async function (doc) {
   try {

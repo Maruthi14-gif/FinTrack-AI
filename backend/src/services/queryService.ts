@@ -1,4 +1,5 @@
 import Expense from '../models/Expense.js';
+import { escapeRegex } from '../utils/query.js';
 import { ai, GEMINI_MODEL, CATEGORIES, extractJson, isQuotaOrKeyError } from '../utils/gemini.js';
 
 export interface ExpenseFilter {
@@ -67,31 +68,35 @@ function getFallbackFilter(queryText: string): ExpenseFilter {
 }
 
 // Translate a structured filter into a Mongoose query object.
+// The filter may come from the AI model, so every field is type-checked first:
+// model output is treated like any other untrusted input.
 function buildMongoQuery(userId: string, filter: ExpenseFilter): any {
   const query: any = { userId };
+  const isDate = (value: unknown): value is string => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const isAmount = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
-  if (filter.search) {
-    query.item = { $regex: filter.search, $options: 'i' };
+  if (typeof filter.search === 'string' && filter.search.trim()) {
+    query.item = { $regex: escapeRegex(filter.search.trim().slice(0, 100)), $options: 'i' };
   }
-  if (filter.category) {
+  if (typeof filter.category === 'string' && CATEGORIES.includes(filter.category)) {
     query.category = filter.category;
   }
-  if (filter.startDate || filter.endDate) {
+  if (isDate(filter.startDate) || isDate(filter.endDate)) {
     query.date = {};
-    if (filter.startDate) query.date.$gte = filter.startDate;
-    if (filter.endDate) query.date.$lte = filter.endDate;
+    if (isDate(filter.startDate)) query.date.$gte = filter.startDate;
+    if (isDate(filter.endDate)) query.date.$lte = filter.endDate;
   }
-  if (filter.minAmount !== undefined || filter.maxAmount !== undefined) {
+  if (isAmount(filter.minAmount) || isAmount(filter.maxAmount)) {
     query.amount = {};
-    if (filter.minAmount !== undefined) query.amount.$gte = filter.minAmount;
-    if (filter.maxAmount !== undefined) query.amount.$lte = filter.maxAmount;
+    if (isAmount(filter.minAmount)) query.amount.$gte = filter.minAmount;
+    if (isAmount(filter.maxAmount)) query.amount.$lte = filter.maxAmount;
   }
 
   return query;
 }
 
 async function findFilteredExpenses(userId: string, filter: ExpenseFilter): Promise<any[]> {
-  const expenses = await Expense.find(buildMongoQuery(userId, filter)).sort({ date: -1, _id: -1 });
+  const expenses = await Expense.find(buildMongoQuery(userId, filter)).sort({ date: -1, _id: -1 }).limit(500);
   return expenses.map(e => ({ ...e.toObject(), id: e._id }));
 }
 
