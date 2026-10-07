@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Trash2, ZoomIn, X, Calendar, Camera, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '@/lib/api';
+import api, { assetUrl } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -143,7 +143,7 @@ export default function ReceiptGallery() {
                 {/* Image Preview Thumbnail */}
                 <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-zinc-950 flex items-center justify-center border border-border/40 group-hover:opacity-95 transition-opacity">
                   <img
-                    src={receipt.imageUrl}
+                    src={assetUrl(receipt.imageUrl)}
                     alt={receipt.merchant}
                     className="w-full h-full object-cover"
                   />
@@ -226,7 +226,7 @@ export default function ReceiptGallery() {
               {/* Modal Image View */}
               <div className="rounded-2xl overflow-hidden border border-border bg-zinc-950 flex items-center justify-center max-h-[55vh]">
                 <img
-                  src={selectedReceipt.imageUrl}
+                  src={assetUrl(selectedReceipt.imageUrl)}
                   alt={selectedReceipt.merchant}
                   className="max-h-[55vh] object-contain w-full"
                 />

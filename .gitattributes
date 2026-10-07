@@ -1,0 +1,9 @@
+# Store text files with LF line endings in the repo, whatever the OS.
+# This stops Windows/Linux line-ending differences showing up as fake changes.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.pdf binary

@@ -13,12 +13,12 @@ self.addEventListener('push', function(event) {
       },
       vibrate: [100, 50, 100],
       actions: [
-        { action: 'open', title: 'Open FinVoice' }
+        { action: 'open', title: 'Open FinTrack AI' }
       ]
     };
 
     event.waitUntil(
-      self.registration.showNotification(data.title || 'FinVoice Alert', options)
+      self.registration.showNotification(data.title || 'FinTrack AI Alert', options)
     );
   } catch (err) {
     console.error('Error parsing push notification data:', err);

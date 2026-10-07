@@ -1,9 +1,7 @@
-import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import env from '../config/env.js';
 
-dotenv.config();
-
-const apiKey = process.env.GEMINI_API_KEY;
+const apiKey = env.geminiApiKey;
 
 // Single shared Gemini client. Null when no API key is configured — callers
 // must fall back to their offline logic in that case.

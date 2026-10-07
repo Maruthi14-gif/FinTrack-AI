@@ -43,7 +43,7 @@ export function exportExpensesCSV(expenses, currency = 'INR') {
 
   const link = document.createElement('a');
   link.href = url;
-  link.setAttribute('download', `finvoice-expenses-${todayStamp()}.csv`);
+  link.setAttribute('download', `fintrack-expenses-${todayStamp()}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -71,7 +71,7 @@ export async function exportExpensesExcel(expenses, currency = 'INR') {
 
   // Sheet 2: summary + category breakdown
   const summaryRows = [
-    ['FinVoice Expense Report'],
+    ['FinTrack AI Expense Report'],
     ['Generated on', todayStamp()],
     [],
     ['Total Spend', `${symbol}${total.toLocaleString()}`],
@@ -84,7 +84,7 @@ export async function exportExpensesExcel(expenses, currency = 'INR') {
   wsSummary['!cols'] = [{ wch: 24 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
-  XLSX.writeFile(wb, `finvoice-expenses-${todayStamp()}.xlsx`);
+  XLSX.writeFile(wb, `fintrack-expenses-${todayStamp()}.xlsx`);
 }
 
 export async function exportExpensesPDF(expenses, currency = 'INR', { title = 'Expense Report', subtitle = '' } = {}) {
@@ -105,7 +105,7 @@ export async function exportExpensesPDF(expenses, currency = 'INR', { title = 'E
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  doc.text('FinVoice', 14, 13);
+  doc.text('FinTrack AI', 14, 13);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.text(title, 14, 22);
@@ -165,5 +165,5 @@ export async function exportExpensesPDF(expenses, currency = 'INR', { title = 'E
     doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
   }
 
-  doc.save(`finvoice-report-${todayStamp()}.pdf`);
+  doc.save(`fintrack-report-${todayStamp()}.pdf`);
 }

@@ -52,6 +52,35 @@ export default function VoiceExpenseInput() {
     browserSupportsSpeechRecognition
   } = useSpeechRecognition();
 
+  const [voiceError, setVoiceError] = useState(null);
+  const [isBrave, setIsBrave] = useState(false);
+
+  // Brave ships the Speech API but blocks Google's speech service behind it,
+  // so recognition "works" but never returns words. Detect Brave up front.
+  useEffect(() => {
+    navigator.brave?.isBrave?.().then((res) => setIsBrave(Boolean(res))).catch(() => {});
+  }, []);
+
+  // Surface native recognition errors that react-speech-recognition swallows
+  // (blocked service, denied mic permission, missing microphone).
+  useEffect(() => {
+    const recognition = SpeechRecognition.getRecognition();
+    if (!recognition) return;
+    const handleError = (event) => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        setVoiceError('Microphone access is blocked. Click the lock/mic icon in the address bar, allow the microphone, then try again.');
+      } else if (event.error === 'network') {
+        setVoiceError('Your browser blocked the speech service (Brave does this by default). Use Chrome or Edge for voice input — or add the expense via the Manual Form tab.');
+      } else if (event.error === 'audio-capture') {
+        setVoiceError('No microphone detected. Connect a mic and try again.');
+      } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        setVoiceError(`Voice recognition error: "${event.error}". Try again, or type the command instead.`);
+      }
+    };
+    recognition.addEventListener('error', handleError);
+    return () => recognition.removeEventListener('error', handleError);
+  }, []);
+
   useEffect(() => {
     if (!listening && transcript.length > 3 && !isProcessing && !resultMessage && activeTab === 'voice' && browserSupportsSpeechRecognition) {
       handleProcessExpense(transcript);
@@ -63,6 +92,7 @@ export default function VoiceExpenseInput() {
       SpeechRecognition.stopListening();
     } else {
       setResultMessage(null);
+      setVoiceError(null);
       resetTranscript();
       SpeechRecognition.startListening({ continuous: false, language: lang });
     }
@@ -344,6 +374,17 @@ export default function VoiceExpenseInput() {
             >
               {browserSupportsSpeechRecognition ? (
                 <>
+                  {(voiceError || isBrave) && (
+                    <div className="bg-amber-500/10 border border-amber-500/25 text-amber-600 rounded-xl p-3.5 text-xs text-center flex items-center justify-center gap-2.5 leading-relaxed w-full">
+                      <AlertCircle size={16} className="shrink-0" />
+                      <span>
+                        {voiceError || (
+                          <>You're using <strong>Brave</strong>, which blocks voice recognition by default. Voice input works best in <strong>Chrome</strong> or <strong>Edge</strong> — or use the <strong>Manual Form</strong> tab.</>
+                        )}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2.5 bg-muted/50 px-4 py-2 rounded-xl border border-border/40">
                     <Languages size={16} className="text-muted-foreground" />
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Voice Language:</span>

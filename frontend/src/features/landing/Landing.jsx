@@ -85,7 +85,7 @@ function HeroMockup() {
         <div className="flex items-center justify-between" style={{ transform: 'translateZ(30px)' }}>
           <div className="flex items-center gap-2">
             <div className="rounded-xl bg-white/20 p-2"><Mic size={16} className="text-white" /></div>
-            <span className="text-sm font-bold tracking-tight text-white">FinVoice</span>
+            <span className="text-sm font-bold tracking-tight text-white">FinTrack AI</span>
           </div>
           <span className="rounded-full bg-emerald-400/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-200">Live</span>
         </div>
@@ -188,7 +188,7 @@ export default function Landing() {
             <div className="rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 p-2 shadow-lg shadow-indigo-500/30">
               <Mic size={18} className="text-white" />
             </div>
-            <span className="text-lg font-extrabold tracking-tight">FinVoice</span>
+            <span className="text-lg font-extrabold tracking-tight">FinTrack AI</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
@@ -428,7 +428,7 @@ export default function Landing() {
       <footer className="border-t border-white/5 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-xs text-white/40 sm:flex-row sm:px-6">
           <span className="flex items-center gap-2 font-semibold">
-            <Mic size={13} /> FinVoice — FinTrack AI
+            <Mic size={13} /> FinTrack AI
           </span>
           <span>Built with React, Express, MongoDB & Gemini AI</span>
         </div>

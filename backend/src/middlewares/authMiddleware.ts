@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_123456';
+import env from '../config/env.js';
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): any => {
   const authHeader = req.headers.authorization;
@@ -18,7 +17,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
   const token = parts[1];
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+    const decoded = jwt.verify(token, env.jwtSecret) as { id: string };
     req.user = { id: decoded.id };
     next();
   } catch (err) {

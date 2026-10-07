@@ -1,30 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
-import webpush from 'web-push';
 import PushSubscription from './PushSubscription.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-
-if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(
-    'mailto:support@finvoice.com',
-    vapidPublicKey,
-    vapidPrivateKey
-  );
-} else {
-  console.log('VAPID keys not configured in .env. Generating dynamic keys...');
-  const keys = webpush.generateVAPIDKeys();
-  process.env.VAPID_PUBLIC_KEY = keys.publicKey;
-  process.env.VAPID_PRIVATE_KEY = keys.privateKey;
-  webpush.setVapidDetails(
-    'mailto:support@finvoice.com',
-    keys.publicKey,
-    keys.privateKey
-  );
-}
+import { webpush } from '../config/webPush.js';
 
 const notificationSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },

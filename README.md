@@ -1,6 +1,6 @@
 # FinTrack AI — Modern Smart Expense Tracker
 
-FinTrack AI (also called **FinVoice** in the app) is a personal finance manager that listens. You can log an expense by simply *saying* "spent 250 on groceries" — in English, Hindi, or Telugu — and AI takes care of the amount, category, and date. Add receipt scanning, budgets with push alerts, a chat-based financial coach, and downloadable PDF/Excel reports, and you get a complete money companion built on a TypeScript backend and a React 19 frontend.
+FinTrack AI is a personal finance manager that listens. You can log an expense by simply *saying* "spent 250 on groceries" — in English, Hindi, or Telugu — and AI takes care of the amount, category, and date. Add receipt scanning, budgets with push alerts, a chat-based financial coach, and downloadable PDF/Excel reports, and you get a complete money companion built on a TypeScript backend and a React 19 frontend.
 
 ---
 
@@ -269,6 +269,7 @@ Create a `.env` file in the `backend/` folder:
 PORT=5000
 MONGO_URI=mongodb+srv://your-db-uri
 JWT_SECRET=your_jwt_signature_secret
+CLIENT_URL=http://localhost:5173
 GEMINI_API_KEY=your_gemini_api_key
 
 # Optional: If not provided, backend generates VAPID keys dynamically in-memory on start

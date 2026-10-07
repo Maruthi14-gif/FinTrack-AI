@@ -1,55 +1,29 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-import path from 'path';
-import express from 'express';
-import cors from 'cors';
+import mongoose from 'mongoose';
+import env from './config/env.js';
 import connectDB from './config/db.js';
+import app from './app.js';
 
-import authRoutes from './routes/auth.js';
-import expensesRoutes from './routes/expenses.js';
-import analyticsRoutes from './routes/analytics.js';
-import budgetsRoutes from './routes/budgets.js';
-import aiRoutes from './routes/ai.js';
-import incomesRoutes from './routes/incomes.js';
-import debtsRoutes from './routes/debts.js';
-import notificationsRoutes from './routes/notifications.js';
-import subscriptionsRoutes from './routes/subscriptions.js';
-import receiptsRoutes from './routes/receipts.js';
+async function start(): Promise<void> {
+  // Connect first: the server should not accept requests it cannot serve.
+  await connectDB();
 
-connectDB();
-
-const app = express();
-const port = process.env.PORT || 5000;
-
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
-
-app.use('/api/auth', authRoutes);
-app.use('/api/expenses', expensesRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/budgets', budgetsRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/incomes', incomesRoutes);
-app.use('/api/debts', debtsRoutes);
-app.use('/api/notifications', notificationsRoutes);
-app.use('/api/subscriptions', subscriptionsRoutes);
-app.use('/api/receipts', receiptsRoutes);
-
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Welcome to the Financial Recovery Assistant API',
-    status: 'active',
-    version: '1.0.0'
+  const server = app.listen(env.port, () => {
+    console.log(`FinTrack AI API running on port ${env.port} (${env.nodeEnv})`);
   });
-});
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
+  // Hosts send SIGTERM before replacing the process on a new deploy.
+  const shutdown = (signal: string) => {
+    console.log(`${signal} received, shutting down...`);
+    server.close(async () => {
+      await mongoose.connection.close();
+      process.exit(0);
+    });
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
 
-app.listen(port, () => {
-  console.log(`Server is running on port: ${port}`);
+start().catch(err => {
+  console.error('Failed to start server:', err.message);
+  process.exit(1);
 });

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Notification from '../models/Notification.js';
 import PushSubscription from '../models/PushSubscription.js';
+import { vapidPublicKey } from '../config/webPush.js';
 
 // GET /api/notifications
 export const getNotifications = async (req: Request, res: Response): Promise<any> => {
@@ -53,11 +54,7 @@ export const markAllAsRead = async (req: Request, res: Response): Promise<any> =
 // GET /api/notifications/vapid-key - public VAPID key for the push subscription
 export const getVapidKey = async (req: Request, res: Response): Promise<any> => {
   try {
-    const publicKey = process.env.VAPID_PUBLIC_KEY;
-    if (!publicKey) {
-      return res.status(500).json({ error: 'VAPID key not initialized' });
-    }
-    res.json({ publicKey });
+    res.json({ publicKey: vapidPublicKey });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

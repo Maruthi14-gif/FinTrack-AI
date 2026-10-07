@@ -47,7 +47,7 @@ function Navigation() {
           <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2 rounded-xl shadow-lg shadow-indigo-500/30">
             <Mic size={20} className="text-white" />
           </div>
-          <span className="font-extrabold text-xl tracking-tight text-white">FinVoice</span>
+          <span className="font-extrabold text-xl tracking-tight text-white">FinTrack AI</span>
         </div>
 
         {/* Section label (desktop) */}
@@ -232,7 +232,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4 w-full">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <p className="text-sm font-semibold text-muted-foreground animate-pulse">Loading FinVoice...</p>
+        <p className="text-sm font-semibold text-muted-foreground animate-pulse">Loading FinTrack AI...</p>
       </div>
     );
   }

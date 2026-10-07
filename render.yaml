@@ -1,21 +1,26 @@
 services:
   - type: web
     name: fintrack-ai-backend
-    env: node
+    runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: node dist/server.js
+    healthCheckPath: /api/health
     envVars:
-      - key: PORT
-        value: 5000
+      - key: NODE_ENV
+        value: production
       - key: MONGO_URI
-        sync: false # User will provide their MongoDB connection URI
+        sync: false # your MongoDB Atlas connection string
       - key: JWT_SECRET
-        generateValue: true # Generates a random secure secret automatically
+        generateValue: true # Render creates a random secret
+      - key: CLIENT_URL
+        sync: false # your Vercel URL, e.g. https://fintrack-ai.vercel.app
       - key: GEMINI_API_KEY
-        sync: false # User will provide their Google Gemini API Key
+        sync: false
       - key: VAPID_PUBLIC_KEY
-        sync: false # Optional: dynamic generation in-memory will fallback if left blank
+        sync: false
       - key: VAPID_PRIVATE_KEY
-        sync: false # Optional: dynamic generation in-memory will fallback if left blank
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false # mailto:your-email

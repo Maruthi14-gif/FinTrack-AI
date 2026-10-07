@@ -1,7 +1,18 @@
 import axios from 'axios';
 
+// Where the backend lives. Set VITE_API_URL in frontend/.env (local) or in the
+// hosting dashboard (production). Vite bakes it in at build time.
+export const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+
+// Turn a server-relative path like /uploads/x.png into a full URL.
+// Absolute URLs (e.g. cloud storage) are returned unchanged.
+export function assetUrl(path) {
+  if (!path) return '';
+  return /^https?:\/\//i.test(path) ? path : `${API_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: `${API_ORIGIN}/api`,
   headers: {
     'Content-Type': 'application/json',
   },

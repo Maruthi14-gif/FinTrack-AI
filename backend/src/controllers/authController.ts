@@ -2,8 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_123456';
+import env from '../config/env.js';
 
 export const register = async (req: Request, res: Response): Promise<any> => {
   const { username, email, password, currency } = req.body;
@@ -29,7 +28,7 @@ export const register = async (req: Request, res: Response): Promise<any> => {
 
     await newUser.save();
 
-    const token = jwt.sign({ id: newUser._id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: newUser._id }, env.jwtSecret, { expiresIn: '7d' });
 
     res.status(201).json({
       token,
@@ -62,7 +61,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id }, env.jwtSecret, { expiresIn: '7d' });
 
     res.json({
       token,
