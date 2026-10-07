@@ -59,6 +59,6 @@ export const parseReceipt = async (req: Request, res: Response): Promise<any> =>
     const result = await parseReceiptImage(req.user.id, image, mimeType);
     res.json(result);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message });
   }
 };

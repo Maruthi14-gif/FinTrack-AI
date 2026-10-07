@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import Receipt from '../models/Receipt.js';
-import { deleteReceiptImage } from '../services/receiptService.js';
+import { deleteImage } from '../services/storageService.js';
 
 // GET /api/receipts - all receipts for the logged-in user
 export const getReceipts = async (req: Request, res: Response): Promise<any> => {
@@ -24,7 +24,7 @@ export const deleteReceipt = async (req: Request, res: Response): Promise<any> =
       return res.status(404).json({ error: 'Receipt not found' });
     }
 
-    deleteReceiptImage(receipt.imageUrl ?? undefined);
+    await deleteImage({ url: receipt.imageUrl, publicId: receipt.imagePublicId });
 
     await Receipt.deleteOne({ _id: req.params.id });
     res.json({ message: 'Receipt deleted successfully' });

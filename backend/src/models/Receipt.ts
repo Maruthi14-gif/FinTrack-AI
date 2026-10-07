@@ -7,6 +7,7 @@ const receiptSchema = new Schema({
   date: { type: String }, // YYYY-MM-DD
   rawText: { type: String, default: '' },
   imageUrl: { type: String, required: true },
+  imagePublicId: { type: String, default: null }, // set when the image lives on Cloudinary
   status: { type: String, enum: ['pending', 'processed', 'failed'], default: 'pending' },
   createdAt: { type: Date, default: Date.now }
 });

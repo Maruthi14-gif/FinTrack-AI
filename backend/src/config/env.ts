@@ -21,6 +21,10 @@ function optional(name: string): string | undefined {
 
 const nodeEnv = optional('NODE_ENV') ?? 'development';
 
+const cloudName = optional('CLOUDINARY_CLOUD_NAME');
+const cloudKey = optional('CLOUDINARY_API_KEY');
+const cloudSecret = optional('CLOUDINARY_API_SECRET');
+
 export const env = {
   nodeEnv,
   isProduction: nodeEnv === 'production',
@@ -37,6 +41,9 @@ export const env = {
 
   // Optional: without it the app runs with its offline (non-AI) fallbacks.
   geminiApiKey: optional('GEMINI_API_KEY'),
+
+  // Receipt image storage. Null means "save to local disk" (development only).
+  cloudinary: cloudName && cloudKey && cloudSecret ? { cloudName, apiKey: cloudKey, apiSecret: cloudSecret } : null,
 
   // Optional in development; set both in production (see config/webPush.ts).
   vapidPublicKey: optional('VAPID_PUBLIC_KEY'),
