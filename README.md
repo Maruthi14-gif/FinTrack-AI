@@ -2,6 +2,9 @@
 
 FinTrack AI is a personal finance manager that listens. You can log an expense by simply *saying* "spent 250 on groceries" — in English, Hindi, or Telugu — and AI takes care of the amount, category, and date. Add receipt scanning, budgets with push alerts, a chat-based financial coach, and downloadable PDF/Excel reports, and you get a complete money companion built on a TypeScript backend and a React 19 frontend.
 
+**Live app:** https://fin-track-ai.vercel.app  
+(The API runs on a free tier that sleeps when idle, so the first request can take up to a minute.)
+
 ---
 
 ## Table of Contents
@@ -193,21 +196,28 @@ The codebase follows a layered architecture so every piece of logic has one obvi
 
 ```
 backend/src/
-├── server.ts            # App entry: express setup + route mounting
-├── config/db.ts         # MongoDB connection
-├── routes/              # THIN routing only — path → controller wiring
+├── server.ts            # Entry point: connect to MongoDB, then start listening
+├── app.ts               # Express app: security middleware + route mounting (no listen, so tests can import it)
+├── config/
+│   ├── env.ts               # Reads and validates every environment variable in one place
+│   ├── db.ts                # MongoDB connection
+│   └── webPush.ts           # VAPID key setup for push notifications
+├── routes/              # THIN routing only — path → validation → controller wiring
 ├── controllers/         # Request/response handling per domain (auth, expenses, budgets, ai, ...)
 ├── services/            # Business & AI logic, reusable and framework-free
-│   ├── aiService.ts         # Voice/text expense parsing + insights (Gemini)
-│   ├── chatService.ts       # AI financial assistant chat
-│   ├── queryService.ts      # Natural-language → database filter translation
-│   ├── summaryService.ts    # Monthly AI report with 1-hour caching
-│   ├── receiptService.ts    # Receipt image storage + Gemini vision OCR
-│   ├── alertService.ts      # Budget alerts, bill reminders, anomaly detection
-│   └── debtPlanService.ts   # Snowball vs Avalanche payoff simulation
-├── models/              # Mongoose schemas (User, Expense, Budget, ...)
-├── middlewares/         # JWT auth guard
-└── utils/gemini.ts      # Shared Gemini client + JSON/category helpers
+│   ├── aiService.ts           # Voice/text expense parsing + insights (Gemini)
+│   ├── chatService.ts         # AI financial assistant chat
+│   ├── queryService.ts        # Natural-language → database filter translation
+│   ├── summaryService.ts      # Monthly AI report with 1-hour caching
+│   ├── receiptService.ts      # Gemini vision OCR for receipts
+│   ├── storageService.ts      # Receipt image storage (Cloudinary, local disk in development)
+│   ├── expenseStatsService.ts # All spending totals, computed in MongoDB with aggregation
+│   ├── alertService.ts        # Budget alerts, bill reminders, anomaly detection
+│   └── debtPlanService.ts     # Snowball vs Avalanche payoff simulation
+├── models/              # Mongoose schemas + indexes (User, Expense, Budget, ...)
+├── validators/          # Zod schemas: the exact shape of every request body
+├── middlewares/         # JWT auth guard, validation, rate limiters, error handler
+└── utils/               # gemini.ts (shared AI client), query.ts (safe query-string parsing)
 
 frontend/src/
 ├── App.jsx              # Router with lazy-loaded (code-split) routes
@@ -222,7 +232,7 @@ frontend/src/
 └── lib/                 # api.js (axios), exporters.js (PDF/Excel/CSV), utils.js
 ```
 
-**Request flow**: `route → controller → service → model`. Controllers never contain business logic; services never touch `req`/`res`. To add a feature, create its service + controller, wire a thin route, and drop the screen into `frontend/src/features/<name>/`.
+**Request flow**: `route → validation → controller → service → model`. Controllers never contain business logic; services never touch `req`/`res`. To add a feature, create its service + controller, wire a thin route, and drop the screen into `frontend/src/features/<name>/`.
 
 ---
 
@@ -243,6 +253,8 @@ frontend/src/
 - **Framework**: Express
 - **Database**: MongoDB (via Mongoose ODM)
 - **Auth**: JWT (jsonwebtoken) + bcryptjs password hashing
+- **Security**: helmet (security headers), express-rate-limit, Zod request validation, CORS allowlist
+- **File storage**: Cloudinary (receipt images)
 - **Push Services**: Web-Push Protocol (VAPID key signatures)
 - **AI Integrations**: Google Gemini API (`@google/genai` sdk, `gemini-2.5-flash` model)
 
@@ -263,25 +275,25 @@ cd FinTrack-AI
 
 ### 2. Environment Variables Configuration
 
-#### Backend Configuration (`backend/.env`)
-Create a `.env` file in the `backend/` folder:
-```env
-PORT=5000
-MONGO_URI=mongodb+srv://your-db-uri
-JWT_SECRET=your_jwt_signature_secret
-CLIENT_URL=http://localhost:5173
-GEMINI_API_KEY=your_gemini_api_key
+Both apps ship an example file listing every variable with a short explanation. Copy it and fill in your values:
 
-# Optional: If not provided, backend generates VAPID keys dynamically in-memory on start
-VAPID_PUBLIC_KEY=your_public_vapid_key
-VAPID_PRIVATE_KEY=your_private_vapid_key
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-#### Frontend Configuration (`frontend/.env`)
-Create a `.env` file in the `frontend/` folder:
-```env
-VITE_API_URL=http://localhost:5000
-```
+| Variable (backend) | Required | Purpose |
+|---|---|---|
+| `MONGO_URI` | yes | MongoDB Atlas connection string |
+| `JWT_SECRET` | yes | Long random string that signs login tokens |
+| `CLIENT_URL` | production | Frontend origin(s) allowed to call the API (defaults to `http://localhost:5173`) |
+| `GEMINI_API_KEY` | no | Enables the AI features; without it the offline fallbacks run |
+| `CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET` | production | Receipt image storage; without them images are saved to local disk |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | production | Push notification keys (`npx web-push generate-vapid-keys`) |
+
+The frontend needs one variable: `VITE_API_URL`, the backend address without `/api` (for example `http://localhost:5000`).
+
+The server refuses to start if a required variable is missing, and tells you which one.
 
 ### 3. Installation & Run
 
@@ -294,7 +306,7 @@ npm install
 npm run dev
 ```
 - Server will listen on: `http://localhost:5000`
-- Logs will show: `VAPID keys not configured. Generating dynamic keys...` or similar status.
+- Logs will show `Connected to MongoDB`, then `FinTrack AI API running on port 5000`.
 
 #### Terminal 2 (Frontend)
 ```bash
@@ -309,28 +321,18 @@ npm run dev
 
 ## Deployment Instructions
 
-### Production Build compilation
-Before deploying, ensure that the project compiles with no warnings or type errors:
+The app is deployed as two services: the API on Render and the frontend on Vercel.
 
-```bash
-# In backend/
-npm run build
+### Backend (Render)
+1. **New → Blueprint** and select this repository. `render.yaml` supplies the build and start commands and the health check (`/api/health`).
+2. Fill in the environment variables from the table above. Paste values **without quotes**.
+3. In MongoDB Atlas, allow `0.0.0.0/0` under **Network Access** (Render's free tier has no fixed IP).
+4. When it is live, `https://<your-service>.onrender.com/api/health` returns `{"status":"ok","database":"connected"}`.
 
-# In frontend/
-npm run build
-```
-
-### Backend Deployment (e.g., Render, Heroku)
-1. Set the build command to: `cd backend && npm install && npm run build`
-2. Set the start command to: `node backend/dist/server.js`
-3. Configure environmental variables on your host platform matching your `backend/.env`.
-
-### Frontend Deployment (e.g., Vercel, Netlify)
-1. Point your host to the root of the repo.
-2. Select target directory as `frontend`.
-3. Set the build command to: `npm run build`
-4. Set the output directory to: `dist`
-5. Configure `VITE_API_URL` pointing to your hosted backend API URL.
+### Frontend (Vercel)
+1. Import the repository and set **Root Directory** to `frontend` (framework preset: Vite).
+2. Add `VITE_API_URL` = your Render address, without `/api` and without a trailing slash.
+3. Deploy, then set `CLIENT_URL` on Render to the Vercel address so the API accepts requests from it.
 
 ---
 
@@ -353,13 +355,17 @@ npm run build
 
 This message appears whenever the frontend cannot reach the backend or the backend cannot reach the database. It is almost always a configuration issue, not an app bug. Check these in order:
 
-1. **Is the backend running?** The app needs *two* servers — `npm run dev` in `backend/` **and** in `frontend/`. If only the frontend is up, every auth request is refused. Confirm the backend log shows `Server is running on port: 5000`.
+1. **Is the backend running?** The app needs *two* servers — `npm run dev` in `backend/` **and** in `frontend/`. If only the frontend is up, every auth request is refused. Confirm the backend log shows `FinTrack AI API running on port 5000`.
 
 2. **Is the database connected?** The backend log should say `Connected to MongoDB`. If instead you see:
    - `querySrv ENOTFOUND ...` → the cluster address in `MONGO_URI` doesn't exist. A MongoDB Atlas free (M0) cluster can be deleted after long inactivity — create a new one and copy its fresh connection string (**Connect → Drivers**) into `backend/.env`.
    - `Could not connect to any servers ... IP that isn't whitelisted` (or a `tlsv1 alert internal error`) → your machine's IP isn't allowed. In Atlas go to **Security → Network Access → Add IP Address → Allow Access From Anywhere** (`0.0.0.0/0`), then wait until it shows **Active**.
    - `bad auth : authentication failed` → the username/password in `MONGO_URI` is wrong. Reset the database user's password under **Security → Database Access** and prefer an alphanumeric password (special characters like `@` must be URL-encoded in the URI, e.g. `@` → `%40`).
 
-3. **Is `JWT_SECRET` set?** Registration signs a token, so `backend/.env` must define `JWT_SECRET`. Any long random string works locally.
+   - `Invalid scheme, expected connection string to start with "mongodb://"` → the value has quote marks around it. Quotes are fine in a `.env` file but not in a hosting dashboard.
+
+3. **Is `JWT_SECRET` set?** The server will not start without it and names the missing variable in the log. Any long random string works locally.
 
 4. **Deployed site failing but local works?** Your hosting platform (Render, etc.) has its own environment variables. Update `MONGO_URI` and `JWT_SECRET` there to match your working local values — the `0.0.0.0/0` allowlist above also lets the host connect.
+
+5. **"Origin ... is not allowed by CORS"?** `CLIENT_URL` on the backend must exactly match the frontend address: `https`, no trailing slash.
