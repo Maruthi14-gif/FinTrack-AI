@@ -285,7 +285,8 @@ export default function VoiceExpenseInput() {
           amount: Number(receiptAmount),
           category: receiptCategory,
           date: receiptDate,
-          description: receiptDesc || `Receipt scan combined expense from ${receiptMerchant}.`
+          description: receiptDesc || `Receipt scan combined expense from ${receiptMerchant}.`,
+          receiptId: parsedReceipt?.id || null
         });
         
         setResultMessage({ type: 'success', text: `Saved ₹${receiptAmount} for ${receiptMerchant}!` });
